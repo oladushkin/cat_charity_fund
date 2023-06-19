@@ -1,4 +1,4 @@
-# app/crud/meeting_room.py
+# app\crud\charity_project.py
 from typing import Optional
 
 from sqlalchemy import select

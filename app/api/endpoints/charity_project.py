@@ -1,21 +1,21 @@
-# app/api/meeting_room.py
+# app\api\endpoints\charity_project.py
 from fastapi import APIRouter, Depends
-
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_async_session
 from app.crud.charity_project import charity_project_crud
+from app.crud.donation import donation_crud
 from app.schemas.charity_project import (
     CreateCharityProject, CharityProjectDB, CharityProjectUpdate
 )
 from app.api.validators import check_name_duplicate, check_project_exists
-
-
+from app.services.investment import charges
 router = APIRouter()
 
 
 @router.get(
     '/',
-    response_model=CharityProjectDB,
+    response_model=List[CharityProjectDB],
     response_model_exclude_none=True,
 )
 async def get_project(
@@ -36,7 +36,12 @@ async def create_new_project(
     session: AsyncSession = Depends(get_async_session),
 ):
     await check_name_duplicate(project.name, session)
-    new_project = charity_project_crud.create(project, session)
+    new_project = await charity_project_crud.create(project, session)
+    await charges(
+        undivided=new_project,
+        crud_class=donation_crud,
+        session=session
+    )
     return new_project
 
 

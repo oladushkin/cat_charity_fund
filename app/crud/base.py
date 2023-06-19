@@ -37,6 +37,7 @@ class CRUDBase:
     ):
         """Создание обьекта"""
         obj_in_data = obj_in.dict()
+        print(obj_in_data)
         db_obj = self.model(**obj_in_data)
         session.add(db_obj)
         await session.commit()
@@ -70,3 +71,18 @@ class CRUDBase:
         await session.delete(db_obj)
         await session.commit()
         return db_obj
+
+    async def get_opened_objects(
+            self,
+            session: AsyncSession
+    ):
+        opened_objects = await session.execute(
+            select(
+                self.model
+            ).where(
+                self.model.fully_invested.is_(False)
+            ).order_by(
+                self.model.create_date
+            )
+        )
+        return opened_objects.scalars().all()
