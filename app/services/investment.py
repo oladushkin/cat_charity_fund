@@ -1,7 +1,9 @@
 # app\services\investment.py
 from datetime import datetime
-from app.core.db import Base
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import Base
 
 
 async def entry_to_db(object: Base, session: AsyncSession) -> Base:

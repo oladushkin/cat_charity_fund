@@ -1,22 +1,30 @@
 # app\api\endpoints\charity_project.py
-from fastapi import APIRouter, Depends
 from typing import List
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.validators import (check_fully_invested,
+                                check_invested_amount_is_null,
+                                check_name_duplicate, check_project_exists,
+                                check_update_fully_invested,
+                                check_update_project)
 from app.core.db import get_async_session
+from app.core.user import current_superuser
 from app.crud.charity_project import charity_project_crud
 from app.crud.donation import donation_crud
-from app.schemas.charity_project import (
-    CreateCharityProject, CharityProjectDB, CharityProjectUpdate
-)
-from app.api.validators import check_name_duplicate, check_project_exists
+from app.schemas.charity_project import (CharityProjectDB,
+                                         CharityProjectUpdate,
+                                         CreateCharityProject)
 from app.services.investment import charges
+
 router = APIRouter()
 
 
 @router.get(
     '/',
-    response_model=List[CharityProjectDB],
     response_model_exclude_none=True,
+    response_model=List[CharityProjectDB]
 )
 async def get_project(
     session: AsyncSession = Depends(get_async_session),
@@ -30,11 +38,13 @@ async def get_project(
     '/',
     response_model=CharityProjectDB,
     response_model_exclude_none=True,
+    dependencies=[Depends(current_superuser)],
 )
 async def create_new_project(
     project: CreateCharityProject,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Только для суперюзеров."""
     await check_name_duplicate(project.name, session)
     new_project = await charity_project_crud.create(project, session)
     await charges(
@@ -48,20 +58,22 @@ async def create_new_project(
 @router.patch(
     '/{project_id}',
     response_model=CharityProjectDB,
-    response_model_exclude_none=True,
+    dependencies=[Depends(current_superuser)],
 )
 async def update_project(
         project_id: int,
         obj_in: CharityProjectUpdate,
         session: AsyncSession = Depends(get_async_session),
 ):
+    """Только для суперюзеров."""
     project = await check_project_exists(
         project_id, session
     )
-
+    await check_update_fully_invested(project_id, session)
+    if obj_in.full_amount is not None:
+        project = await check_update_project(project_id, obj_in.full_amount, session)
     if obj_in.name is not None:
         await check_name_duplicate(obj_in.name, session)
-
     project = await charity_project_crud.update(
         project, obj_in, session
     )
@@ -71,18 +83,15 @@ async def update_project(
 @router.delete(
     '/{project_id}',
     response_model=CharityProjectDB,
-    response_model_exclude_none=True
+    dependencies=[Depends(current_superuser)],
 )
-async def remove_meeting_room(
+async def remove_project(
         project_id: int,
         session: AsyncSession = Depends(get_async_session),
 ):
+    """Только для суперюзеров."""
     project = await check_project_exists(project_id, session)
-    if project.invested_amount != 0:
-        project.fully_invested = True
-        session.add(project)
-        await session.commit()
-        await session.refresh(project)
-        return project
+    await check_invested_amount_is_null(project_id, session)
+    await check_fully_invested(project_id, session)
     project = await charity_project_crud.remove(project, session)
     return project

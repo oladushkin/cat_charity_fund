@@ -1,6 +1,7 @@
 # app/core/db.py
 from datetime import datetime
-from sqlalchemy import Column, Integer, DateTime
+
+from sqlalchemy import Column, DateTime, Integer
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, declared_attr, sessionmaker
 
