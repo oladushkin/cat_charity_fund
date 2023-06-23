@@ -1,4 +1,5 @@
 # app\api\endpoints\donation.py
+from http import HTTPStatus
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -66,23 +67,23 @@ async def get_my_donations(
 
 @router.delete(
     '/{donat_id}',
-    tags=['donation'],
+    tags=('donation'),
     deprecated=True
 )
 async def del_donat(donat_id: int):
     raise HTTPException(
-        status_code=404,
+        status_code=HTTPStatus.NOT_FOUND,
         detail="Удаление донатов запрещено!"
     )
 
 
 @router.patch(
     '/{donat_id}',
-    tags=['donation'],
+    tags=('donation'),
     deprecated=True
 )
 def patch_donat(donat_id: str):
     raise HTTPException(
-        status_code=404,
+        status_code=HTTPStatus.NOT_FOUND,
         detail="Изменение донатов запрещено!"
     )
